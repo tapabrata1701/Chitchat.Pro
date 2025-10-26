@@ -15,10 +15,10 @@ const MessageInput = ({ onSend }) => {
 
   return (
     <form onSubmit={handleSend} className="flex items-center space-x-4 p-2 bg-white rounded-xl">
-      <button type="button" className="p-3 rounded-full hover:bg-gray-100">
+      <button type="button" className="p-3 rounded-full hover:bg-gray-100 cursor-pointer">
         <FiPaperclip className="text-gray-500 text-xl" />
       </button>
-      <button type="button" className="p-3 rounded-full hover:bg-gray-100">
+      <button type="button" className="p-3 rounded-full hover:bg-gray-100 cursor-pointer">
         <BsMicFill className="text-gray-500 text-xl" />
       </button>
       <input
@@ -26,11 +26,11 @@ const MessageInput = ({ onSend }) => {
         placeholder="Type a message"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        className="flex-1 bg-transparent focus:outline-none"
+        className="flex-1 bg-transparent focus:outline-none "
       />
       <button
         type="submit"
-        className="p-3 rounded-full text-black"
+        className="p-3 rounded-full text-black cursor-pointer"
       >
         <FiSend className="text-xl" />
       </button>

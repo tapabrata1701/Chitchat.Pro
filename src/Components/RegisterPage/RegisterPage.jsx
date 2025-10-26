@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { auth, ensureUserDocuments } from '../../firebase';
 import AuthForm from '../Login/AuthForm';
-import InputField from '../Login/InputField';
+import InputField from '../Login/inputField';
+
+
 
 const RegisterPage = () => {
     const [email, setEmail] = useState('');
@@ -22,10 +24,21 @@ const RegisterPage = () => {
         setIsLoading(true);
         setError('');
         try {
-            await createUserWithEmailAndPassword(auth, email, password);
+            const res = await createUserWithEmailAndPassword(auth, email, password);
+            const user = res.user;
+            // Ensure user documents exist
+            await ensureUserDocuments(user);
+            sessionStorage.setItem('isAuthenticated', 'true');
             navigate('/');
         } catch (err) {
-            setError(err.message.replace('Firebase: ', ''));
+            // Custom error message for registration errors
+            if (err.code === 'auth/email-already-in-use') {
+                setError('This Gmail is already registered');
+            } else if (err.code === 'auth/weak-password') {
+                setError('Password should be at least 6 characters');
+            } else {
+                setError(err.message.replace('Firebase: ', ''));
+            }
         } finally {
             setIsLoading(false);
         }
@@ -36,10 +49,19 @@ const RegisterPage = () => {
         setError('');
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
+            const res = await signInWithPopup(auth, provider);
+            const user = res.user;
+            // Ensure user documents exist
+            await ensureUserDocuments(user);
+            sessionStorage.setItem('isAuthenticated', 'true');
             navigate('/');
         } catch (err) {
-            setError(err.message.replace('Firebase: ', ''));
+            // Custom error message for Google sign-in errors
+            if (err.code === 'auth/popup-closed-by-user') {
+                setError('Sign-in was cancelled');
+            } else {
+                setError(err.message.replace('Firebase: ', ''));
+            }
         } finally {
             setIsLoading(false);
         }

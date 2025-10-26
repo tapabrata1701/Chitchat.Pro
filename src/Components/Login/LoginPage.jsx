@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { auth, ensureUserDocuments } from '../../firebase';
 import AuthForm from './AuthForm';
-import InputField from './InputField';
+import InputField from './inputField';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -15,33 +15,28 @@ const LoginPage = () => {
     const handleLogin = async (e) => {
     e.preventDefault();
 
-    // --- MOCK LOGIN FOR FRONTEND TESTING ---
-    console.log("Simulating login...");
-    setIsLoading(true);
-
-    // Simulate a 1-second network delay
-    setTimeout(() => {
-        console.log("Mock login successful! Navigating to chat layout...");
-        // Set the dummy authentication status so the ProtectedRoute will let you pass.
-        sessionStorage.setItem('isAuthenticated', 'true');
-
-        navigate('/'); // Now this navigation will succeed.
-        
-    }, 1000);
-    
-    // --- REAL FIREBASE CODE IS COMMENTED OUT ---
-    /*
     setIsLoading(true);
     setError('');
     try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const res = await signInWithEmailAndPassword(auth, email, password);
+        const user = res.user;
+        
+        // Ensure user documents exist
+        await ensureUserDocuments(user);
+        
+        sessionStorage.setItem('isAuthenticated', 'true');
         navigate('/');
     } catch (err) {
-        setError(err.message.replace('Firebase: ', ''));
+        // Custom error message for wrong credentials
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            setError('Invalid username or password');
+        } else {
+            setError(err.message.replace('Firebase: ', ''));
+        }
     } finally {
         setIsLoading(false);
     }
-    */
+    
 };
 
     const handleGoogleSignIn = async () => {
@@ -49,10 +44,21 @@ const LoginPage = () => {
         setError('');
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
+            const res = await signInWithPopup(auth, provider);
+            const user = res.user;
+            
+            // Ensure user documents exist
+            await ensureUserDocuments(user);
+            
+            sessionStorage.setItem('isAuthenticated', 'true');
             navigate('/');
         } catch (err) {
-            setError(err.message.replace('Firebase: ', ''));
+            // Custom error message for wrong credentials
+            if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+                setError('Invalid username or password');
+            } else {
+                setError(err.message.replace('Firebase: ', ''));
+            }
         } finally {
             setIsLoading(false);
         }
