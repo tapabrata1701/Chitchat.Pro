@@ -21,14 +21,15 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 
-const signup = async (email, password) => {
+const signup = async (name, email, password) => {
   try {
     const res = await createUserWithEmailAndPassword(auth, email, password);
     const user = res.user;
     await setDoc(doc(db, "users", user.uid),{
-      id:user.uid,
-      email,
-      lastSeen:Date.now()
+      id: user.uid,
+      name: name,
+      email: email,
+      lastSeen: Date.now()
     })
     await setDoc(doc(db,"chats", user.uid),{
       chatData:[]
@@ -49,9 +50,15 @@ const login = async (email, password) =>{
 }
 
 // Utility function to ensure user documents exist
-const ensureUserDocuments = async (user) => {
+const ensureUserDocuments = async (user, name = null) => {
   try {
     console.log("Creating documents for user:", user.uid, user.email);
+    console.log("User displayName:", user.displayName);
+    console.log("Provided name:", name);
+    
+    // Determine the best name to use
+    const finalName = name || user.displayName || user.email.split('@')[0];
+    console.log("Final name to store:", finalName);
     
     // Check if user document exists, create if not
     const userDocRef = doc(db, "users", user.uid);
@@ -61,12 +68,22 @@ const ensureUserDocuments = async (user) => {
       console.log("Creating user document...");
       await setDoc(userDocRef, {
         id: user.uid,
+        name: finalName,
         email: user.email,
         lastSeen: Date.now()
       });
-      console.log("User document created successfully");
+      console.log("User document created successfully with name:", finalName);
     } else {
       console.log("User document already exists");
+      // Update name if it's not set or if we have a better name
+      const existingData = userDoc.data();
+      if (!existingData.name || (name && name !== existingData.name)) {
+        console.log("Updating user name from", existingData.name, "to", finalName);
+        await setDoc(userDocRef, {
+          ...existingData,
+          name: finalName
+        }, { merge: true });
+      }
     }
     
     // Check if chat document exists, create if not

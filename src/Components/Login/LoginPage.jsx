@@ -47,8 +47,11 @@ const LoginPage = () => {
             const res = await signInWithPopup(auth, provider);
             const user = res.user;
             
-            // Ensure user documents exist
-            await ensureUserDocuments(user);
+            // Extract name from Google account
+            const googleName = user.displayName || user.email.split('@')[0];
+            
+            // Ensure user documents exist with Google name
+            await ensureUserDocuments(user, googleName);
             
             sessionStorage.setItem('isAuthenticated', 'true');
             navigate('/');

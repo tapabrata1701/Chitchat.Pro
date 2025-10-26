@@ -8,6 +8,7 @@ import InputField from '../Login/inputField';
 
 
 const RegisterPage = () => {
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -17,6 +18,10 @@ const RegisterPage = () => {
 
     const handleRegister = async (e) => {
         e.preventDefault();
+        if (!name.trim()) {
+            setError("Please enter your name.");
+            return;
+        }
         if (password !== confirmPassword) {
             setError("Passwords do not match.");
             return;
@@ -26,8 +31,8 @@ const RegisterPage = () => {
         try {
             const res = await createUserWithEmailAndPassword(auth, email, password);
             const user = res.user;
-            // Ensure user documents exist
-            await ensureUserDocuments(user);
+            // Ensure user documents exist with name
+            await ensureUserDocuments(user, name);
             sessionStorage.setItem('isAuthenticated', 'true');
             navigate('/');
         } catch (err) {
@@ -51,8 +56,12 @@ const RegisterPage = () => {
         try {
             const res = await signInWithPopup(auth, provider);
             const user = res.user;
-            // Ensure user documents exist
-            await ensureUserDocuments(user);
+            
+            // Extract name from Google account
+            const googleName = user.displayName || user.email.split('@')[0];
+            
+            // Ensure user documents exist with Google name
+            await ensureUserDocuments(user, googleName);
             sessionStorage.setItem('isAuthenticated', 'true');
             navigate('/');
         } catch (err) {
@@ -68,6 +77,10 @@ const RegisterPage = () => {
     };
 
     const fields = [
+        {
+            id: 'name',
+            component: <InputField label="Enter Your Name" id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" />
+        },
         {
             id: 'email',
             component: <InputField label="Email Address" id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />

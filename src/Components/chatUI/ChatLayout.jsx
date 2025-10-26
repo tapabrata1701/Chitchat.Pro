@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../../firebase";
 import TopNav from "../topNav/TopNav";
 import LeftSidebar from "../sideBar/Sidebar";
 import ChatWindow from "./ChatWindow";
 import RightProfileSidebar from "./RightProfileSidebar";
-import { users as initialUsers, messages as initialMessages, currentUser, groups as initialGroups } from "../../data";
+import { users as initialUsers, messages as initialMessages, groups as initialGroups } from "../../data";
 
 const ChatLayout = () => {
   const [activeTab, setActiveTab] = useState("Chat");
   const [selectedChatId, setSelectedChatId] = useState("Subho_09");
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   
   const [users, setUsers] = useState(initialUsers);
   const [groups, setGroups] = useState(initialGroups);
@@ -19,7 +23,7 @@ const ChatLayout = () => {
   const selectedChatMessages = messages[selectedChatId] || [];
 
   const handleSendMessage = (text) => {
-    if (!selectedChatId) return;
+    if (!selectedChatId || !currentUser) return;
 
     const newMessage = {
       id: Date.now(),
@@ -53,6 +57,49 @@ const ChatLayout = () => {
     sidebarList = Object.values(groups);
   }
 
+  // Fetch current user data from Firestore
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        if (auth.currentUser) {
+          const userDocRef = doc(db, "users", auth.currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setCurrentUser({
+              id: userData.id,
+              name: userData.name,
+              email: userData.email,
+              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=random&color=fff`
+            });
+          } else {
+            // Fallback if user document doesn't exist
+            setCurrentUser({
+              id: auth.currentUser.uid,
+              name: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
+              email: auth.currentUser.email,
+              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(auth.currentUser.displayName || auth.currentUser.email.split('@')[0])}&background=random&color=fff`
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+        // Fallback user data
+        setCurrentUser({
+          id: auth.currentUser?.uid || "unknown",
+          name: auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || "User",
+          email: auth.currentUser?.email || "",
+          avatar: "https://ui-avatars.com/api/?name=User&background=random&color=fff"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
   // Auto-select the first item in the list if the current selection disappears
   useEffect(() => {
     const isSelectedVisible = sidebarList.some(item => item.id === selectedChatId);
@@ -63,6 +110,18 @@ const ChatLayout = () => {
     }
   }, [activeTab, sidebarList, selectedChatId]);
 
+
+  // Show loading state while fetching user data
+  if (loading || !currentUser) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#F7F7F7]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-[#F7F7F7]">
